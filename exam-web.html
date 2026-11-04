@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam System</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        input, textarea {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at top, rgba(138, 43, 226, 0.15), transparent 50%),
+                        radial-gradient(ellipse at bottom, rgba(0, 191, 255, 0.15), transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            z-index: -2;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 191, 255, 0.05) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* ===== NEW: FADE IN/OUT ANIMATIONS ===== */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+        }
+
+        @keyframes slideInFromBottom {
+            from {
+                opacity: 0;
+                transform: translateY(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) rotate(-10deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05) rotate(2deg);
+            }
+            70% {
+                transform: scale(0.9) rotate(-1deg);
+            }
+            100% {
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        .camera-monitor {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            width: 200px;
+            background: rgba(15, 15, 25, 0.95);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 8px 32px rgba(138, 43, 226, 0.4);
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideInFromBottom 0.6s ease-out;
+        }
+
+        .camera-monitor.active {
+            display: block;
+        }
+
+        .camera-monitor video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .camera-status {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #00bfff;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .camera-indicator {
+            width: 8px;
+            height: 8px;
+            background: #00ff00;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+
+        .violation-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.95);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(255, 0, 0, 0.6);
+            z-index: 10000;
+            display: none;
+            text-align: center;
+            animation: bounceIn 0.5s ease-out;
+        }
+
+        .violation-warning.active {
+            display: block;
+        }
+
+        .violation-warning h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .loading-screen.fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 6px solid rgba(138, 43, 226, 0.3);
+            border-top: 6px solid #8a2be2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #00bfff;
+            font-size: 1.3rem;
+            margin-top: 25px;
+            font-weight: 600;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .progress-bar-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: rgba(20, 20, 30, 0.9);
+            z-index: 100;
+            display: none;
+        }
+
+        .progress-bar-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #8a2be2, #00bfff, #8a2be2);
+            background-size: 200% 100%;
+            width: 0%;
+            transition: width 0.4s;
+            animation: progressShine 2s linear infinite;
+        }
+
+        @keyframes progressShine {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .card {
+            background: rgba(15, 15, 25, 0.85);
+            border-radius: 24px;
+            padding: 45px;
+            max-width: 650px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(138, 43, 226, 0.3);
+            position: relative;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* NEW: Card fade out animation */
+        .card.fade-out {
+            animation: fadeOut 0.4s ease-out forwards;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8a2be2 0%, #00bfff 50%, #8a2be2 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            color: #00bfff;
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 0.8s ease-out 0.3s both;
+        }
+
+        .subtitle {
+            color: #a0a0b0;
+            font-size: 1.05rem;
+            font-weight: 500;
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 0.8s ease-out 0.5s both;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #00bfff;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(30, 30, 40, 0.95);
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #8a2be2;
+            box-shadow: 0 0 0 4px rgba(138, 43, 226, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            color: #ff3366;
+            font-size: 0.875rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: fadeIn 0.8s ease-out 0.6s both;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8a2be2 0%, #00bfff 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(138, 43, 226, 0.6);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(138, 43, 226, 0.3);
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .question-counter {
+            color: #00bfff;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #8a2be2;
+        }
+
+        .timer.warning {
+            color: #ff3366;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            line-height: 1.7;
+            margin-bottom: 30px;
+            color: #f5f5f5;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 0.6s ease-out 0.1s both;
+        }
+
+        .question-type-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #8a2be2, #00bfff);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .question-image {
+            width: 100%;
+            max-width: 450px;
+            margin: 25px auto;
+            display: block;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(138, 43, 226, 0.3);
+            animation: fadeIn 0.7s ease-out 0.2s both;
+        }
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .choice {
+            position: relative;
+            animation: fadeIn 0.5s ease-out both;
+        }
+
+        .choice:nth-child(1) { animation-delay: 0.1s; }
+        .choice:nth-child(2) { animation-delay: 0.2s; }
+        .choice:nth-child(3) { animation-delay: 0.3s; }
+        .choice:nth-child(4) { animation-delay: 0.4s; }
+
+        .choice input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .choice label {
+            display: block;
+            padding: 18px 24px;
+            background: rgba(10, 10, 20, 0.7);
+            border: 2px solid rgba(138, 43, 226, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+
+        .choice input[type="radio"]:checked + label {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.25), rgba(0, 191, 255, 0.25));
+            border-color: #00bfff;
+            color: #00bfff;
+            transform: scale(1.02);
+        }
+
+        .choice label:hover {
+            border-color: #8a2be2;
+            background: rgba(138, 43, 226, 0.1);
+            transform: translateX(-5px);
+        }
+
+        .tf-choices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .tf-choice label {
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 25px;
+        }
+
+        /* ESSAY TEXTAREA */
+        .essay-box {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            background-color: #16213e !important;
+            color: #ffffff !important;
+            border: 3px solid #8a2be2 !important;
+            border-radius: 12px;
+            font-size: 1.1rem !important;
+            font-family: 'Inter', sans-serif !important;
+            line-height: 1.8;
+            resize: vertical;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.6s ease-out 0.2s both;
+        }
+
+        .essay-box:focus {
+            outline: none !important;
+            border-color: #00bfff !important;
+            background-color: #1a2847 !important;
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.4) !important;
+        }
+
+        .essay-box::placeholder {
+            color: #7f8c9f !important;
+        }
+
+        /* MATCHING SELECT */
+        .matching-container {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .matching-pair {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(20, 20, 35, 0.8);
+            padding: 18px;
+            border-radius: 12px;
+            border: 2px solid rgba(138, 43, 226, 0.4);
+            animation: fadeIn 0.5s ease-out both;
+        }
+
+        .matching-pair:nth-child(1) { animation-delay: 0.1s; }
+        .matching-pair:nth-child(2) { animation-delay: 0.2s; }
+        .matching-pair:nth-child(3) { animation-delay: 0.3s; }
+        .matching-pair:nth-child(4) { animation-delay: 0.4s; }
+
+        .matching-left {
+            font-weight: 600;
+            color: #ffffff;
+            width: 48%;
+            font-size: 1.1rem;
+            text-align: right;
+        }
+
+        .matching-right {
+            width: 48%;
+        }
+
+        .match-dropdown {
+            width: 100%;
+            padding: 14px 18px !important;
+            background-color: #16213e !important;
+            color: #ffffff !important;
+            border: 3px solid #8a2be2 !important;
+            border-radius: 10px;
+            font-size: 1.05rem !important;
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .match-dropdown:focus {
+            outline: none !important;
+            border-color: #00bfff !important;
+            background-color: #1a2847 !important;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.3) !important;
+        }
+
+        .match-dropdown option {
+            background-color: #16213e !important;
+            color: #ffffff !important;
+            padding: 12px;
+            font-size: 1rem;
+        }
+
+        .congrats-screen {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .congrats-icon {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            animation: bounceIn 0.8s ease-out;
+        }
+
+        .congrats-message {
+            font-size: 1.4rem;
+            color: #00bfff;
+            margin: 30px 0;
+            font-weight: 600;
+            line-height: 1.8;
+            animation: fadeIn 0.8s ease-out 0.3s both;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .alert-box, .success-box {
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        .alert-box {
+            background: rgba(255, 51, 102, 0.15);
+            border: 2px solid #ff3366;
+            color: #ff8899;
+        }
+
+        .success-box {
+            background: rgba(0, 191, 255, 0.15);
+            border: 2px solid #00bfff;
+            color: #00bfff;
+        }
+
+        /* ===== UI refresh + appointment booking ===== */
+        :focus-visible { outline: 3px solid #00bfff; outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+        @media (max-width: 520px) { .container { padding: 12px; } .card { padding: 22px 16px; } }
+        .btn-link { margin-top: 14px; background: transparent; color: #00bfff; border: 2px solid rgba(0,191,255,.5); }
+        .btn-link:hover:not(:disabled) { background: rgba(0,191,255,.12); }
+        .btn-row { display: flex; gap: 10px; margin-top: 14px; } .btn-row .btn { flex: 1; }
+        .btn-secondary { background: rgba(255,255,255,.08); color: #fff; border: 2px solid rgba(255,255,255,.2); }
+        .bk-info { background: rgba(0,191,255,.08); border: 1px solid rgba(0,191,255,.35); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; line-height: 2; }
+        .bk-info b { color: #00bfff; }
+        .slot-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 10px; border: 2px solid rgba(138,43,226,.35); border-radius: 12px; cursor: pointer; background: rgba(30,30,40,.9); }
+        .slot-card:has(input:checked) { border-color: #00bfff; background: rgba(0,191,255,.12); }
+        .slot-card input { width: 20px; height: 20px; accent-color: #00bfff; } .slot-card .sc-main { flex: 1; font-weight: 700; } .slot-card .sc-left { color: #9fe3ff; font-size: .9rem; }
+        .bk-spin { text-align: center; padding: 20px; color: #9fe3ff; }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">🔥 جاري الإتصال بلوحة التحكم...</div>
+    </div>
+
+    <div class="camera-monitor" id="cameraMonitor">
+        <video id="cameraVideo" autoplay muted></video>
+        <div class="camera-status">
+            <span class="camera-indicator"></span>
+            Recording
+        </div>
+    </div>
+
+    <div class="violation-warning" id="violationWarning">
+        <h3>⛔ تم اكتشاف غش!</h3>
+        <p id="violationMessage">سيتم إنهاء الامتحان فوراً</p>
+    </div>
+
+    <div class="progress-bar-container" id="progressBarContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="container">
+        <div class="card hidden" id="timeLockedScreen">
+            <div class="congrats-screen">
+                <div class="congrats-icon">🔒</div>
+                <h2>الامتحان مغلق</h2>
+                <p class="subtitle">Exam is Closed</p>
+                <div class="alert-box">
+                    <p>الامتحان مغلق الان من قبل المشرف</p>
+                </div>
+                <button type="button" class="btn btn-link" onclick="openBooking()">📅 تحديد المواعيد / Book an Appointment</button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="landingScreen">
+            <div class="header">
+                <h1>Exam</h1>
+                <p class="subtitle">موقع امتحانات الكتروني</p>
+            </div>
+            
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="accessCode">كود الدخول / Access Code</label>
+                    <input type="text" id="accessCode" required placeholder="أدخل كود الدخول">
+                    <div class="error-message" id="codeError">الرجاء إدخال كود صالح</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="candidateName">الاسم / Name</label>
+                    <input type="text" id="candidateName" required autocomplete="name">
+                    <div class="error-message" id="nameError">الرجاء إدخال اسمك</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="candidatePhone">رقم الهاتف / Phone Number</label>
+                    <input type="text" id="candidatePhone" required inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" maxlength="20">
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="startBtn">ابدأ الاختبار / Start Exam</button>
+            </form>
+            <button type="button" class="btn btn-link" onclick="openBooking()">📅 تحديد المواعيد / Book an Appointment</button>
+        </div>
+
+        <div class="card hidden" id="questionScreen">
+            <div class="question-header">
+                <div class="question-counter" id="questionCounter"></div>
+                <div class="timer" id="timer">
+                    <span>⏱</span>
+                    <span id="timeRemaining">15</span>
+                </div>
+            </div>
+            
+            <span class="question-type-badge" id="questionTypeBadge">اختيار من متعدد</span>
+            <div class="question-text" id="questionText"></div>
+            <img id="questionImage" class="question-image hidden" alt="Question Image">
+            
+            <div id="questionContent"></div>
+        </div>
+
+        <div class="card hidden" id="congratsScreen">
+            <div class="congrats-screen">
+                <div class="congrats-icon">✅</div>
+                <h2>تم تسليم الإجابات بنجاح</h2>
+                <p class="subtitle">Answers Submitted Successfully</p>
+                
+                <div class="success-box" id="saveStatus">
+                    ✅ تم حفظ وإرسال إجاباتك بنجاح للمراجعة
+                </div>
+
+                <p class="congrats-message">
+                    سيتم مراجعة إجاباتك وإعلان النتائج قريباً<br>
+                    شكراً لمشاركتك!
+                </p>
+                <button type="button" class="btn btn-link" onclick="openBooking()">📅 تحديد المواعيد / Book an Appointment</button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="bookingScreen">
+            <div class="header"><h1>📅 تحديد المواعيد</h1><p class="subtitle">Appointment Scheduling</p></div>
+            <div class="alert-box hidden" id="bkError" role="alert"></div>
+            <div id="bkClosed" class="hidden"><div class="alert-box">نظام حجز المواعيد غير متاح حالياً. برجاء المحاولة لاحقاً.</div></div>
+            <form id="bkVerify" class="hidden" autocomplete="off">
+                <div class="form-group"><label for="bkCode">كود الامتحان / Exam Code</label><input type="text" id="bkCode" required></div>
+                <div class="form-group"><label for="bkName">الاسم بالكامل / Full Name</label><input type="text" id="bkName" required autocomplete="name"></div>
+                <div class="form-group"><label for="bkPhone">رقم الهاتف / Phone Number</label><input type="text" id="bkPhone" required inputmode="tel" autocomplete="tel"></div>
+                <button type="submit" class="btn btn-primary" id="bkVerifyBtn">تحقق / Verify</button>
+            </form>
+            <div id="bkSlots" class="hidden">
+                <div class="bk-info" id="bkInfo"></div>
+                <div id="bkSlotList" role="radiogroup" aria-label="المواعيد المتاحة"></div>
+                <div class="btn-row"><button class="btn btn-primary" id="bkNextBtn" disabled>متابعة / Continue</button></div>
+            </div>
+            <div id="bkConfirm" class="hidden">
+                <div class="bk-info" id="bkConfirmInfo"></div>
+                <p style="text-align:center;margin-bottom:6px">هل تريد تأكيد الحجز؟ لا يمكن تغيير الموعد بعد التأكيد إلا عن طريق الإدارة.</p>
+                <div class="btn-row"><button class="btn btn-secondary" id="bkBackBtn">رجوع</button><button class="btn btn-primary" id="bkConfirmBtn">تأكيد الحجز ✔</button></div>
+            </div>
+            <div id="bkDone" class="hidden">
+                <div class="success-box" id="bkDoneMsg"></div>
+                <div class="bk-info" id="bkDoneInfo"></div>
+            </div>
+            <button type="button" class="btn btn-link" onclick="closeBooking()">⬅ رجوع للصفحة الرئيسية</button>
+        </div>
+
+        <div class="card hidden" id="invalidCodeScreen">
+            <div class="congrats-screen">
+                <div class="congrats-icon">⚠️</div>
+                <h2>كود غير صالح</h2>
+                <p class="subtitle">Invalid or Used Code</p>
+                <div class="alert-box" id="codeErrorMessage"></div>
+                <button class="btn btn-primary" onclick="returnToHome()">العودة للبداية / Return to Home</button>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getDatabase, ref, get, set, update, push, runTransaction, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB07Y_PLpim4coY9zT0KxrhfmDLu-xe_bM",
+        authDomain: "el-qaheraweya.firebaseapp.com",
+        databaseURL: "https://el-qaheraweya-default-rtdb.firebaseio.com",
+        projectId: "el-qaheraweya",
+        storageBucket: "el-qaheraweya.appspot.com",
+        messagingSenderId: "380945019833",
+        appId: "1:380945019833:web:24f293bade8ea5ffdcfc68",
+        measurementId: "G-9W4QNTF5CK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.firebaseDB = { database: getDatabase(app), ref, get, set, update, push, runTransaction, onValue };
+    console.log('🔥 Firebase initialized');
+    
+    if(window.loadQuizApp) window.loadQuizApp();
+</script>
+
+<script>
+    let QUESTIONS = [];
+    let QUIZ_STATE = { isActive: false };
+    
+    let EXAM_SETTINGS = {
+        antiCheat: { enabled: false, maxViolations: 1 },
+        camera: { enabled: false, captureInterval: 30000 },
+        timer: { mode: 'perQuestion', totalTime: 1800, questionTime: 15 }
+    };
+
+    let state = {
+        accessCode: '',
+        candidateName: '',
+        currentIndex: 0,
+        score: 0,
+        timer: null,
+        globalTimer: null,
+        answers: [],
+        violations: [],
+        cameraStream: null,
+        cameraInterval: null,
+        snapshots: [],
+        examStarted: false,
+        examFinished: false,
+        gracePeriodActive: false,
+        hasViolated: false
+    };
+
+/* ===== AppCore: classification + appointment booking + exports (shared by both sites) ===== */
+const AppCore = (function () {
+  const NONE = 'none';
+  const DEFAULT_TIERS = [{ key: 'I', label: 'I', min: 80 }, { key: 'B', label: 'B', min: 70 }, { key: 'C', label: 'C', min: 50 }];
+  const DAYS = [
+    { key: 'sat', ar: 'السبت', en: 'Saturday' }, { key: 'sun', ar: 'الأحد', en: 'Sunday' },
+    { key: 'mon', ar: 'الاثنين', en: 'Monday' }, { key: 'tue', ar: 'الثلاثاء', en: 'Tuesday' },
+    { key: 'wed', ar: 'الأربعاء', en: 'Wednesday' }, { key: 'thu', ar: 'الخميس', en: 'Thursday' },
+    { key: 'fri', ar: 'الجمعة', en: 'Friday' }
+  ];
+  const dayInfo = k => DAYS.find(d => d.key === k) || { key: k, ar: k, en: k };
+
+  function toLatinDigits(s) {
+    return String(s == null ? '' : s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  }
+  function normalizeName(s) {
+    return String(s || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function normalizePhone(s) {
+    let d = toLatinDigits(s).replace(/\D/g, '');
+    if (d.startsWith('0020')) d = '0' + d.slice(4);
+    else if (d.startsWith('20') && d.length === 12) d = '0' + d.slice(2);
+    return d;
+  }
+  const isValidPhone = p => /^\d{10,15}$/.test(normalizePhone(p));
+  const normalizeCode = c => String(c || '').trim().toUpperCase();
+
+  // ---- classification (exact integer-safe comparison, never uses the rounded percentage) ----
+  function validateTiers(tiers) {
+    if (!Array.isArray(tiers) || tiers.length < 1) return 'يجب تحديد مجموعة واحدة على الأقل';
+    const keys = new Set(), mins = new Set();
+    for (const t of tiers) {
+      if (!t.key || !String(t.label || '').trim()) return 'اسم المجموعة مطلوب';
+      if (typeof t.min !== 'number' || isNaN(t.min) || t.min <= 0 || t.min > 100) return 'الحد الأدنى يجب أن يكون بين 1 و 100';
+      if (keys.has(t.key)) return 'مفتاح مجموعة مكرر';
+      if (mins.has(t.min)) return 'لا يمكن تكرار نفس الحد الأدنى لمجموعتين (تداخل)';
+      keys.add(t.key); mins.add(t.min);
+    }
+    return null;
+  }
+  function classify(score, total, tiers) {
+    score = Number(score); total = Number(total);
+    if (!(total > 0) || isNaN(score) || score < 0) return NONE;
+    const sorted = (tiers && tiers.length ? tiers : DEFAULT_TIERS).slice().sort((a, b) => b.min - a.min);
+    for (const t of sorted) if (score * 100 + 1e-9 >= t.min * total) return t.key;
+    return NONE;
+  }
+  const exactPct = (score, total) => (Number(total) > 0 ? (Number(score) / Number(total)) * 100 : 0);
+  function groupLabel(key, tiers) {
+    if (key === NONE || !key) return 'غير مصنف / يحتاج مراجعة';
+    const t = (tiers || DEFAULT_TIERS).find(x => x.key === key);
+    return t ? t.label : key;
+  }
+
+  // ---- slots helpers ----
+  const slotSort = (a, b) => (DAYS.findIndex(d => d.key === a.day) - DAYS.findIndex(d => d.key === b.day)) || String(a.time).localeCompare(String(b.time));
+  const countBooked = seats => Object.keys(seats || {}).length;
+  function fmtTimeAr(t) {
+    const [h, m] = String(t).split(':').map(Number); const p = h >= 12 ? 'م' : 'ص'; const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${hh}:${String(m).padStart(2, '0')} ${p}`;
+  }
+  function fileBase(slot) {
+    const [h, m] = String(slot.time).split(':').map(Number); const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${dayInfo(slot.day).en}_${hh}${m ? '_' + String(m).padStart(2, '0') : ''}${h >= 12 ? 'PM' : 'AM'}_Student_List`;
+  }
+  function validateSlot(s) {
+    if (!DAYS.some(d => d.key === s.day)) return 'اليوم غير صحيح';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(s.time || ''))) return 'الوقت غير صحيح';
+    if (!Number.isInteger(s.capacity) || s.capacity < 1 || s.capacity > 200) return 'السعة يجب أن تكون رقماً صحيحاً بين 1 و 200';
+    return null;
+  }
+
+  // ---- database access (fb = {database, ref, get, set, update, push, runTransaction}) ----
+  const P = (fb, path) => fb.ref(fb.database, path);
+  const read = async (fb, path) => (await fb.get(P(fb, path))).val();
+  async function getSettings(fb) {
+    const s = (await read(fb, 'appointmentSettings')) || {};
+    return { enabled: s.enabled === true, open: s.open === true, institution: s.institution || 'منصة الامتحانات الإلكترونية' };
+  }
+  async function listSlots(fb) {
+    const [a, s] = await Promise.all([read(fb, 'appointments'), read(fb, 'seats')]);
+    return Object.values(a || {}).filter(x => x && x.active !== false).map(x => {
+      const booked = countBooked((s || {})[x.id]);
+      return { ...x, booked, remaining: Math.max(0, x.capacity - booked) };
+    }).sort(slotSort);
+  }
+  async function history(fb, entry) {
+    try { await fb.set(fb.push(P(fb, 'bookingHistory')), { ...entry, at: new Date().toISOString() }); } catch (e) { /* history is best-effort */ }
+  }
+  // Atomically claim one free seat number (1..capacity). Returns seat number or 0 when full.
+  async function claimSeat(fb, slotId, capacity) {
+    const taken = (await read(fb, `seats/${slotId}`)) || {};
+    const free = []; for (let n = 1; n <= capacity; n++) if (!taken[n]) free.push(n);
+    // keep seats compact (lowest numbers first) so capacity can later be reduced; small random window avoids collisions
+    const w = Math.min(free.length, 4), off = w ? Math.floor(Math.random() * w) : 0;
+    const order = free.slice(0, w).map((_, i, a) => a[(i + off) % w]).concat(free.slice(w));
+    for (const n of order) {
+      const r = await fb.runTransaction(P(fb, `seats/${slotId}/${n}`), cur => (cur == null ? n : undefined));
+      if (r.committed) return n;
+    }
+    return 0;
+  }
+  const STUCK_MS = 60000;
+  async function bookSeat(fb, code, slotId, info) {
+    code = normalizeCode(code);
+    const st = await getSettings(fb);
+    if (!st.enabled || !st.open) throw new Error('نظام الحجز مغلق حالياً');
+    const slot = await read(fb, `appointments/${slotId}`);
+    if (!slot || slot.active === false) throw new Error('الموعد غير متاح');
+    const now = Date.now();
+    const rec = { slotId, seat: 0, name: info.name, phone: info.phone, bookedAt: new Date(now).toISOString(), status: 'pending' };
+    const t1 = await fb.runTransaction(P(fb, `studentBookings/${code}`), cur =>
+      (cur == null || (cur.status === 'pending' && now - Date.parse(cur.bookedAt) > STUCK_MS)) ? rec : undefined);
+    if (!t1.committed) throw new Error('لديك حجز مسبق بالفعل، لا يمكن حجز أكثر من موعد');
+    let seat = 0;
+    try { seat = await claimSeat(fb, slotId, slot.capacity); } catch (e) { await fb.set(P(fb, `studentBookings/${code}`), null); throw e; }
+    if (!seat) { await fb.set(P(fb, `studentBookings/${code}`), null); throw new Error('عذراً، اكتمل عدد هذا الموعد'); }
+    try {
+      await fb.update(P(fb), { [`studentBookings/${code}/seat`]: seat, [`studentBookings/${code}/status`]: 'confirmed' });
+    } catch (e) {
+      await fb.set(P(fb, `seats/${slotId}/${seat}`), null); await fb.set(P(fb, `studentBookings/${code}`), null); throw e;
+    }
+    await history(fb, { code, action: 'book', slotId, seat, by: 'student' });
+    return { slotId, seat };
+  }
+  async function cancelBooking(fb, code, by) {
+    code = normalizeCode(code);
+    const b = await read(fb, `studentBookings/${code}`);
+    if (!b) return false;
+    const up = { [`studentBookings/${code}`]: null };
+    if (b.seat) up[`seats/${b.slotId}/${b.seat}`] = null;
+    await fb.update(P(fb), up);
+    await history(fb, { code, action: 'cancel', slotId: b.slotId, seat: b.seat || 0, by: by || 'admin' });
+    return true;
+  }
+  async function moveBooking(fb, code, newSlotId, by) {
+    code = normalizeCode(code);
+    const b = await read(fb, `studentBookings/${code}`);
+    if (!b) throw new Error('لا يوجد حجز لهذا الطالب');
+    if (b.slotId === newSlotId) return b;
+    const slot = await read(fb, `appointments/${newSlotId}`);
+    if (!slot || slot.active === false) throw new Error('الموعد الجديد غير متاح');
+    const seat = await claimSeat(fb, newSlotId, slot.capacity);
+    if (!seat) throw new Error('الموعد الجديد مكتمل');
+    const up = { [`studentBookings/${code}/slotId`]: newSlotId, [`studentBookings/${code}/seat`]: seat, [`studentBookings/${code}/status`]: 'confirmed', [`studentBookings/${code}/movedAt`]: new Date().toISOString() };
+    if (b.seat) up[`seats/${b.slotId}/${b.seat}`] = null;
+    try { await fb.update(P(fb), up); } catch (e) { await fb.set(P(fb, `seats/${newSlotId}/${seat}`), null); throw e; }
+    await history(fb, { code, action: 'move', slotId: newSlotId, from: b.slotId, seat, by: by || 'admin' });
+    return { slotId: newSlotId, seat };
+  }
+  async function canSetCapacity(fb, slotId, cap) {
+    const seats = (await read(fb, `seats/${slotId}`)) || {};
+    const max = Math.max(0, ...Object.keys(seats).map(Number));
+    return max <= cap ? null : `يوجد حجوزات حتى المقعد رقم ${max}، انقل الطلاب أو ألغِ حجوزاتهم أولاً`;
+  }
+  async function deleteSlot(fb, slotId, by) {
+    const all = (await read(fb, 'studentBookings')) || {};
+    const up = { [`appointments/${slotId}`]: null, [`seats/${slotId}`]: null };
+    const codes = Object.keys(all).filter(c => all[c].slotId === slotId);
+    codes.forEach(c => { up[`studentBookings/${c}`] = null; });
+    await fb.update(P(fb), up);
+    for (const c of codes) await history(fb, { code: c, action: 'cancel-slot-deleted', slotId, by: by || 'admin' });
+    return codes.length;
+  }
+
+  // ---- exports ----
+  function slotRows(slot, bookings, results, tiers) {
+    return Object.keys(bookings || {}).filter(c => bookings[c].slotId === slot.id && bookings[c].status === 'confirmed').map(c => {
+      const b = bookings[c], r = (results || {})[c] || {};
+      const g = r.total > 0 ? classify(r.score, r.total, tiers) : NONE;
+      return { code: c, name: b.name || r.name || '', phone: b.phone || '', score: r.score, total: r.total, pct: r.total > 0 ? Math.round(exactPct(r.score, r.total) * 10) / 10 : 0, group: groupLabel(g, tiers), groupKey: g, seat: b.seat };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ar') || a.code.localeCompare(b.code));
+  }
+  const slotTitle = s => `${dayInfo(s.day).ar} - ${fmtTimeAr(s.time)}`;
+  async function buildExcel(ExcelJS, slot, rows) {
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Exam System';
+    const ws = wb.addWorksheet('Students', { views: [{ state: 'frozen', ySplit: 1, rightToLeft: true }] });
+    ws.columns = [['No.', 6], ['Student Code', 16], ['Full Name', 36], ['Phone Number', 18], ['Score', 12], ['Percentage', 12], ['Group', 18], ['Appointment', 24]].map(([header, width]) => ({ header, width }));
+    rows.forEach((r, i) => ws.addRow([i + 1, r.code, r.name, r.phone, `${r.score ?? ''} / ${r.total ?? ''}`, (r.pct || 0) / 100, r.group, slotTitle(slot)]));
+    ws.getColumn(6).numFmt = '0.0%';
+    const h = ws.getRow(1); h.font = { bold: true, color: { argb: 'FFFFFFFF' } }; h.alignment = { horizontal: 'center', vertical: 'middle' };
+    h.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B2A9A' } }; });
+    ws.eachRow((row, n) => { if (n > 1) row.alignment = { horizontal: 'center', vertical: 'middle' }; });
+    ws.getColumn(4).numFmt = '@';
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 8 } };
+    return wb.xlsx.writeBuffer();
+  }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function buildPdfPages(slot, rows, institution, perPage) {
+    perPage = perPage || 25;
+    const total = Math.max(1, Math.ceil(rows.length / perPage)), pages = [];
+    for (let p = 0; p < total; p++) {
+      const chunk = rows.slice(p * perPage, (p + 1) * perPage);
+      pages.push(`<div class="pdf-page" dir="rtl"><div class="pdf-head"><h1>${esc(institution)}</h1><h2>قائمة طلاب موعد: ${esc(slotTitle(slot))}</h2>
+<div class="pdf-meta"><span>عدد المسجلين: ${rows.length}</span><span>السعة القصوى: ${slot.capacity}</span></div></div>
+<table><thead><tr><th>م</th><th>كود الطالب</th><th>الاسم بالكامل</th><th>رقم الهاتف</th><th>الدرجة</th><th>المجموعة</th></tr></thead><tbody>
+${chunk.map((r, i) => `<tr><td>${p * perPage + i + 1}</td><td>${esc(r.code)}</td><td class="nm">${esc(r.name)}</td><td dir="ltr">${esc(r.phone)}</td><td>${esc(r.score)} / ${esc(r.total)} (${r.pct}%)</td><td>${esc(r.group)}</td></tr>`).join('')}
+${rows.length ? '' : '<tr><td colspan="6">لا يوجد طلاب مسجلين في هذا الموعد</td></tr>'}</tbody></table><div class="pdf-foot">صفحة ${p + 1} من ${total}</div></div>`);
+    }
+    return pages;
+  }
+  return { NONE, DEFAULT_TIERS, DAYS, dayInfo, normalizeName, normalizePhone, isValidPhone, normalizeCode, validateTiers, classify, exactPct, groupLabel, slotSort, countBooked, fmtTimeAr, fileBase, validateSlot, getSettings, listSlots, claimSeat, bookSeat, cancelBooking, moveBooking, canSetCapacity, deleteSlot, slotRows, slotTitle, buildExcel, buildPdfPages, esc };
+})();
+
+    // ===== APPOINTMENT BOOKING (student side) =====
+    const BK = { code: '', name: '', phone: '', slot: null, from: 'landingScreen', fails: 0, lockUntil: 0, tiers: null };
+    const $ = (id) => document.getElementById(id);
+    const bkShow = (id) => ['bkClosed','bkVerify','bkSlots','bkConfirm','bkDone'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+    const bkError = (m) => { const b = $('bkError'); b.textContent = m || ''; b.classList.toggle('hidden', !m); };
+    const bkInfoHtml = (r, g) => `<div>الاسم: <b>${AppCore.esc(BK.name)}</b></div><div>كود الامتحان: <b>${AppCore.esc(BK.code)}</b></div><div>الدرجة: <b>${AppCore.esc(r.score)} / ${AppCore.esc(r.total)}</b> (${Math.round(AppCore.exactPct(r.score, r.total) * 10) / 10}%)</div><div>المجموعة: <b>${AppCore.esc(AppCore.groupLabel(g, BK.tiers))}</b></div>`;
+
+    window.openBooking = async function () {
+        const visible = ['timeLockedScreen', 'landingScreen', 'congratsScreen'].find(id => !$(id).classList.contains('hidden'));
+        BK.from = visible || 'landingScreen';
+        if (visible) $(visible).classList.add('hidden');
+        fadeInScreen('bookingScreen'); bkError(''); bkShow('bkVerify');
+        try { const st = await AppCore.getSettings(window.firebaseDB); if (!st.enabled || !st.open) bkShow('bkClosed'); }
+        catch (e) { bkError('تعذر الاتصال بالخادم، حاول مرة أخرى'); }
+    };
+    window.closeBooking = function () { $('bookingScreen').classList.add('hidden'); fadeInScreen(BK.from); };
+
+    async function bkVerifyStudent(code, name, phoneRaw) {
+        const { database, ref, get, runTransaction } = window.firebaseDB;
+        const bad = new Error('البيانات غير صحيحة، تأكد من الكود والاسم ورقم الهاتف');
+        if (!AppCore.isValidPhone(phoneRaw)) throw bad;
+        const phone = AppCore.normalizePhone(phoneRaw);
+        const [cs, rs] = await Promise.all([get(ref(database, `accessCodes/${code}`)), get(ref(database, `results/${code}`))]);
+        if (!cs.exists() || !cs.val().used) throw bad;
+        const cd = cs.val();
+        if (AppCore.normalizeName(cd.usedBy) !== AppCore.normalizeName(name)) throw bad;
+        if (cd.phone) { if (AppCore.normalizePhone(cd.phone) !== phone) throw bad; }
+        else {   // students who sat the exam before phone numbers were collected: first verification registers the number
+            const tx = await runTransaction(ref(database, `accessCodes/${code}/phone`), cur => (cur == null ? phone : undefined));
+            if (!tx.committed && AppCore.normalizePhone((await get(ref(database, `accessCodes/${code}/phone`))).val()) !== phone) throw bad;
+        }
+        if (!rs.exists()) throw new Error('لم يتم العثور على نتيجة امتحان لهذا الكود');
+        let tiers = null;
+        try { const gs = (await get(ref(database, 'groupSettings'))).val(); if (gs && gs.tiers) tiers = Array.isArray(gs.tiers) ? gs.tiers : Object.values(gs.tiers); } catch (_) {}
+        BK.tiers = tiers;
+        return { phone, result: rs.val(), name: String(cd.usedBy).trim() };   // registered name (not the typed variant)
+    }
+
+    async function bkRenderSlots() {
+        const { database, ref, get } = window.firebaseDB;
+        const st = await AppCore.getSettings(window.firebaseDB);
+        if (!st.enabled || !st.open) return bkShow('bkClosed');
+        const r = BK.result, g = AppCore.classify(r.score, r.total, BK.tiers);
+        const mine = (await get(ref(database, `studentBookings/${BK.code}`))).val();
+        if (mine && mine.status === 'confirmed') return bkRenderDone(mine.slotId, true);
+        $('bkInfo').innerHTML = bkInfoHtml(r, g);
+        const slots = (await AppCore.listSlots(window.firebaseDB)).filter(s => s.remaining > 0);
+        const list = $('bkSlotList'); list.innerHTML = ''; BK.slot = null; $('bkNextBtn').disabled = true;
+        if (!slots.length) list.innerHTML = '<div class="alert-box">لا توجد مواعيد متاحة حالياً</div>';
+        slots.forEach(s => {
+            const lab = document.createElement('label'); lab.className = 'slot-card';
+            lab.innerHTML = `<input type="radio" name="bkSlot" value="${AppCore.esc(s.id)}"><span class="sc-main">${AppCore.esc(AppCore.slotTitle(s))}</span><span class="sc-left">المتبقي: ${s.remaining}</span>`;
+            lab.querySelector('input').addEventListener('change', () => { BK.slot = s; $('bkNextBtn').disabled = false; });
+            list.appendChild(lab);
+        });
+        bkShow('bkSlots');
+    }
+    async function bkRenderDone(slotId, already) {
+        const slot = (await get_(`appointments/${slotId}`)) || {};
+        $('bkDoneMsg').textContent = already ? '✅ لديك حجز مؤكد بالفعل' : '✅ تم تأكيد حجزك بنجاح';
+        $('bkDoneInfo').innerHTML = `<div>الاسم: <b>${AppCore.esc(BK.name)}</b></div><div>الموعد: <b>${AppCore.esc(AppCore.slotTitle(slot))}</b></div><div style="color:#9fe3ff">لتغيير الموعد برجاء التواصل مع الإدارة.</div>`;
+        bkShow('bkDone');
+    }
+    const get_ = async (p) => (await window.firebaseDB.get(window.firebaseDB.ref(window.firebaseDB.database, p))).val();
+
+    $('bkVerify').addEventListener('submit', async (e) => {
+        e.preventDefault(); bkError('');
+        if (Date.now() < BK.lockUntil) return bkError('محاولات كثيرة، انتظر نصف دقيقة ثم أعد المحاولة');
+        const btn = $('bkVerifyBtn'); btn.disabled = true; btn.textContent = 'جاري التحقق...';
+        try {
+            const code = AppCore.normalizeCode($('bkCode').value), name = $('bkName').value.trim();
+            const v = await bkVerifyStudent(code, name, $('bkPhone').value);
+            Object.assign(BK, { code, name: v.name, phone: v.phone, result: v.result, fails: 0 });
+            await bkRenderSlots();
+        } catch (err) {
+            if (++BK.fails >= 5) { BK.lockUntil = Date.now() + 30000; BK.fails = 0; }
+            bkError(err.message);
+        } finally { btn.disabled = false; btn.textContent = 'تحقق / Verify'; }
+    });
+    $('bkNextBtn').addEventListener('click', () => {
+        if (!BK.slot) return; bkError('');
+        $('bkConfirmInfo').innerHTML = bkInfoHtml(BK.result, AppCore.classify(BK.result.score, BK.result.total, BK.tiers)) + `<div>الموعد المختار: <b>${AppCore.esc(AppCore.slotTitle(BK.slot))}</b></div>`;
+        bkShow('bkConfirm');
+    });
+    $('bkBackBtn').addEventListener('click', () => { bkError(''); bkShow('bkSlots'); });
+    $('bkConfirmBtn').addEventListener('click', async () => {
+        const btn = $('bkConfirmBtn'); btn.disabled = true; btn.textContent = 'جاري الحجز...'; bkError('');
+        try {
+            await AppCore.bookSeat(window.firebaseDB, BK.code, BK.slot.id, { name: BK.name, phone: BK.phone });
+            await bkRenderDone(BK.slot.id, false);
+        } catch (err) {
+            bkError(err.message);
+            try { await bkRenderSlots(); } catch (_) { bkShow('bkSlots'); }
+        } finally { btn.disabled = false; btn.textContent = 'تأكيد الحجز ✔'; }
+    });
+
+    // ===== HELPER: FADE OUT SCREEN =====
+    function fadeOutScreen(elementId, callback) {
+        const element = document.getElementById(elementId);
+        element.classList.add('fade-out');
+        setTimeout(() => {
+            element.classList.add('hidden');
+            element.classList.remove('fade-out');
+            if (callback) callback();
+        }, 400);
+    }
+
+    // ===== HELPER: FADE IN SCREEN =====
+    function fadeInScreen(elementId) {
+        const element = document.getElementById(elementId);
+        element.classList.remove('hidden');
+        // Reset animation
+        element.style.animation = 'none';
+        setTimeout(() => {
+            element.style.animation = '';
+        }, 10);
+    }
+
+    window.loadQuizApp = async function() {
+        try {
+            if (!window.firebaseDB) { setTimeout(loadQuizApp, 100); return; }
+            
+            const { database, ref, get } = window.firebaseDB;
+            const fetch = async (path) => (await get(ref(database, path))).val();
+
+            const [qState, settings, questions] = await Promise.all([
+                fetch('quizState'), fetch('examSettings'), fetch('questions')
+            ]);
+
+            if(qState) QUIZ_STATE = qState;
+            if(settings) EXAM_SETTINGS = { ...EXAM_SETTINGS, ...settings };
+            if(questions) QUESTIONS = Object.values(questions).sort((a,b)=>a.id-b.id);
+
+            // Add fade-out animation to loading screen
+            const loadingScreen = document.getElementById('loadingScreen');
+            loadingScreen.classList.add('fade-out');
+            
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+                loadingScreen.classList.remove('fade-out');
+
+                if (!QUIZ_STATE.isActive) {
+                    fadeInScreen('timeLockedScreen');
+                } else {
+                    fadeInScreen('landingScreen');
+                }
+            }, 500);
+
+        } catch (e) {
+            console.error("Error loading app:", e);
+            document.querySelector('.loading-text').textContent = "حدث خطأ في الاتصال";
+        }
+    };
+
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = AppCore.normalizeCode(document.getElementById('accessCode').value);
+        const name = document.getElementById('candidateName').value.trim().replace(/\s+/g, ' ');
+        const phoneRaw = document.getElementById('candidatePhone').value;
+        const btn = document.getElementById('startBtn');
+        const errEl = document.getElementById('codeError');
+        const showErr = (m) => { errEl.textContent = m; errEl.classList.add('show'); };
+        errEl.classList.remove('show');
+
+        if (!code || !name) return;
+        if (!AppCore.isValidPhone(phoneRaw)) { showErr('رقم الهاتف غير صحيح (10 إلى 15 رقماً)'); return; }
+
+        btn.disabled = true;
+        btn.textContent = "جاري التحقق...";
+
+        try {
+            const { database, ref, get, runTransaction } = window.firebaseDB;
+            const phone = AppCore.normalizePhone(phoneRaw);
+
+            const codeSnap = await get(ref(database, `accessCodes/${code}`));
+            if(!codeSnap.exists()) throw new Error("الكود غير صحيح");
+            if(codeSnap.val().used) throw new Error("هذا الكود مستخدم من قبل");
+
+            // atomic claim: two students can no longer redeem the same code at the same time
+            const tx = await runTransaction(ref(database, `accessCodes/${code}`), cur => {
+                if (cur === null) return null;
+                if (cur.used) return undefined;
+                return { ...cur, used: true, usedBy: name, phone: phone, usedAt: new Date().toISOString() };
+            });
+            if (!tx.committed) throw new Error("هذا الكود مستخدم من قبل");
+            if (!tx.snapshot.exists()) throw new Error("الكود غير صحيح");
+
+            state.accessCode = code;   
+            state.candidateName = name; 
+            state.phone = phone;
+
+            await setupCamera(); 
+            
+            // Fade out landing screen before starting exam
+            fadeOutScreen('landingScreen', startExam);
+
+        } catch(err) {
+            showErr(err.message);
+            btn.disabled = false;
+            btn.textContent = "ابدأ الاختبار";
+        }
+    });
+
+    async function startExam() {
+        if (QUESTIONS.length === 0) return alert('لا توجد أسئلة متاحة');
+
+        fadeInScreen('questionScreen');
+        document.getElementById('progressBarContainer').classList.add('active');
+
+        state.gracePeriodActive = true;
+
+        setTimeout(() => {
+            state.examStarted = true;
+            state.gracePeriodActive = false;
+            setupAntiCheat();
+        }, 3000);
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        if (EXAM_SETTINGS.timer.mode === 'full') {
+            state.globalTimer = setInterval(() => {
+                if(state.totalTimeRemaining <= 0) finishExam('انتهى الوقت');
+            }, 1000);
+        }
+        
+        showQuestion(0);
+    }
+
+    function showQuestion(index) {
+        if(index >= QUESTIONS.length) return finishExam();
+
+        state.currentIndex = index;
+        const q = QUESTIONS[index];
+        
+        document.getElementById('questionCounter').textContent = `سؤال ${index+1} / ${QUESTIONS.length}`;
+        document.getElementById('questionText').textContent = q.text;
+        document.getElementById('progressBar').style.width = `${((index)/QUESTIONS.length)*100}%`;
+        document.getElementById('questionTypeBadge').innerText = q.type;
+
+        const img = document.getElementById('questionImage');
+        if(q.image) { img.src = q.image; img.classList.remove('hidden'); }
+        else { img.classList.add('hidden'); }
+
+        const content = document.getElementById('questionContent');
+        content.innerHTML = '';
+
+        if (q.type === 'mcq' || q.type === 'truefalse') {
+            const options = q.type === 'mcq' ? q.choices : ['صح (True)', 'خطأ (False)'];
+            const values = q.type === 'mcq' ? q.choices.map((_,i)=>i) : ['true', 'false'];
+            
+            let html = '<div class="choices">';
+            options.forEach((opt, i) => {
+                html += `
+                    <div class="choice">
+                        <input type="radio" name="ans" id="opt${i}" value="${values[i]}">
+                        <label for="opt${i}">${opt}</label>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+
+            document.querySelectorAll('input[name="ans"]').forEach(input => {
+                input.addEventListener('change', () => submitAnswer(input.value));
+            });
+        } 
+        else if (q.type === 'essay') {
+            content.innerHTML = `
+                <textarea class="essay-box" id="essayInput" placeholder="اكتب إجابتك هنا بالتفصيل..."></textarea>
+                <button class="btn btn-primary" id="essaySubmitBtn">تسجيل الإجابة</button>
+            `;
+
+            document.getElementById('essaySubmitBtn').addEventListener('click', () => {
+                const text = document.getElementById('essayInput').value;
+                submitEssayAnswer(text);
+            });
+        }
+        else if (q.type === 'matching') {
+            let rightOpts = q.rightColumn.map((txt, idx) => ({txt, idx})).sort(()=>Math.random()-0.5);
+            
+            let html = '<div class="matching-container">';
+            
+            q.leftColumn.forEach((leftText, i) => {
+                let selectOptions = '<option value="">-- اختر الإجابة --</option>';
+                rightOpts.forEach(opt => {
+                    selectOptions += `<option value="${opt.idx}">${opt.txt}</option>`;
+                });
+
+                html += `
+                    <div class="matching-pair">
+                        <div class="matching-left">${leftText}</div>
+                        <div class="matching-right">
+                            <select class="match-dropdown" id="matchSelect${i}">
+                                ${selectOptions}
+                            </select>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div><button class="btn btn-primary" id="matchSubmitBtn">تسجيل الإجابة</button>';
+            content.innerHTML = html;
+
+            document.getElementById('matchSubmitBtn').addEventListener('click', () => {
+                submitMatchingAnswer(q.leftColumn.length);
+            });
+        }
+
+        clearInterval(state.timer);
+        let time = q.timeout || 15;
+        document.getElementById('timeRemaining').textContent = time;
+        
+        state.timer = setInterval(() => {
+            time--;
+            document.getElementById('timeRemaining').textContent = time;
+            if(time <= 5) document.getElementById('timer').classList.add('warning');
+            else document.getElementById('timer').classList.remove('warning');
+            
+            if(time <= 0) submitAnswer(null, true);
+        }, 1000);
+    }
+
+    function submitAnswer(val, timedOut = false) {
+        clearInterval(state.timer);
+        const q = QUESTIONS[state.currentIndex];
+        
+        if(q.type === 'mcq' && val !== null) val = parseInt(val);
+
+        let isCorrect = false;
+        if(q.type === 'mcq') isCorrect = (val === q.correctChoice);
+        else if(q.type === 'truefalse') isCorrect = (val === q.correctAnswer);
+        
+        if(isCorrect) state.score++;
+
+        state.answers.push({
+            questionId: q.id,
+            questionText: q.text,
+            type: q.type,
+            selectedChoice: val,
+            correct: isCorrect,
+            timedOut: timedOut
+        });
+
+        setTimeout(() => showQuestion(state.currentIndex + 1), 300);
+    }
+
+    function submitEssayAnswer(text) {
+        clearInterval(state.timer);
+        const q = QUESTIONS[state.currentIndex];
+
+        state.answers.push({
+            questionId: q.id,
+            questionText: q.text,
+            type: 'essay',
+            essayText: text,
+            correct: null,
+            timedOut: false
+        });
+
+        setTimeout(() => showQuestion(state.currentIndex + 1), 300);
+    }
+
+    function submitMatchingAnswer(count) {
+        clearInterval(state.timer);
+        const q = QUESTIONS[state.currentIndex];
+        let pairs = [];
+        let correctCount = 0;
+
+        for (let i = 0; i < count; i++) {
+            const selectEl = document.getElementById(`matchSelect${i}`);
+            const val = selectEl?.value;
+            
+            if (val && val !== "") {
+                const rightIdx = parseInt(val);
+                pairs.push({ left: i, right: rightIdx });
+                if (i === rightIdx) correctCount++;
+            }
+        }
+
+        const isCorrect = (correctCount === q.leftColumn.length && correctCount > 0);
+        if (isCorrect) state.score++;
+
+        state.answers.push({
+            questionId: q.id,
+            questionText: q.text,
+            type: 'matching',
+            pairs: pairs,
+            correct: isCorrect
+        });
+
+        setTimeout(() => showQuestion(state.currentIndex + 1), 300);
+    }
+
+    async function finishExam(reason = '', forceZero = false, cheatingDetected = false) {
+        if (state.examFinished) return;
+        state.examFinished = true;
+        
+        try {
+            // ✅ FIX 1: Stop all anti-cheat monitoring IMMEDIATELY
+            clearInterval(state.timer);
+            clearInterval(state.globalTimer);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            
+            // ✅ FIX 2: Remove all anti-cheat event listeners BEFORE proceeding
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleWindowBlur);
+            window.removeEventListener('resize', handleWindowResize);
+            document.removeEventListener('contextmenu', handleContextMenu);
+            document.removeEventListener('keydown', handleKeyDown);
+            
+            stopCamera();
+
+            if (forceZero || cheatingDetected) {
+                state.score = 0;
+                reason = reason || "تم إلغاء الامتحان بسبب محاولة غش";
+            }
+
+            // Fade out question screen
+            fadeOutScreen('questionScreen', async () => {
+                document.getElementById('progressBar').style.width = '100%';
+
+                const percentage = cheatingDetected ? 0 : Math.round((state.score / QUESTIONS.length) * 100) || 0;
+                let tiers = null;
+                try {
+                    const gs = (await window.firebaseDB.get(window.firebaseDB.ref(window.firebaseDB.database, 'groupSettings'))).val();
+                    if (gs && gs.tiers) tiers = Array.isArray(gs.tiers) ? gs.tiers : Object.values(gs.tiers);
+                } catch (_) { /* fall back to default tiers */ }
+                const finalScore = cheatingDetected ? 0 : state.score;
+                const group = AppCore.classify(finalScore, QUESTIONS.length, tiers);
+
+                // Save to Firebase
+                const { database, ref, set } = window.firebaseDB;
+                await set(ref(database, `results/${state.accessCode}`), {
+                    id: Date.now(),
+                    name: state.candidateName,
+                    code: state.accessCode,
+                    score: cheatingDetected ? 0 : state.score,
+                    total: QUESTIONS.length,
+                    percentage: percentage,
+                    exactPercentage: AppCore.exactPct(finalScore, QUESTIONS.length),
+                    group: group,
+                    phone: state.phone || '',
+                    answers: state.answers,
+                    violations: state.violations || [],
+                    cheatingDetected: cheatingDetected,
+                    cheatingReason: cheatingDetected ? reason : null,
+                    date: new Date().toISOString()
+                });
+
+                if(state.snapshots.length > 0) {
+                    await set(ref(database, `snapshots/${state.accessCode}`), {
+                        candidateName: state.candidateName,
+                        snapshots: state.snapshots
+                    });
+                }
+                
+                // Show results screen with animation
+                fadeInScreen('congratsScreen');
+                
+                const statusEl = document.getElementById('saveStatus');
+                if(cheatingDetected) {
+                    statusEl.innerHTML = '⚠️ تم رصد محاولة غش - تم إرسال التقرير للمشرف';
+                    statusEl.classList.remove('success-box');
+                    statusEl.classList.add('alert-box');
+                } else {
+                    statusEl.innerHTML = '✅ تم حفظ وإرسال إجاباتك بنجاح للمراجعة';
+                }
+            });
+
+        } catch(e) {
+            console.error("Save error", e);
+            fadeInScreen('congratsScreen');
+            document.getElementById('saveStatus').innerHTML = '⚠️ حدث خطأ في الحفظ';
+        }
+    }
+    
+    // ✅ FIX 3: Store event handlers as named functions so we can remove them
+    function handleVisibilityChange() {
+        if(document.hidden && !state.hasViolated && state.examStarted && !state.gracePeriodActive && !state.examFinished) {
+            logViolation('الخروج من صفحة الامتحان');
+        }
+    }
+
+    function handleWindowBlur() {
+        if(state.examStarted && !state.gracePeriodActive && !state.hasViolated && !state.examFinished) {
+            logViolation('الخروج من نافذة الامتحان');
+        }
+    }
+
+    function handleWindowResize() {
+        if(!state.examStarted || state.gracePeriodActive || state.hasViolated || state.examFinished) return;
+        
+        const widthDiff = Math.abs(window.outerWidth - screen.width);
+        const heightDiff = Math.abs(window.outerHeight - screen.height);
+        
+        if (widthDiff > 100 || heightDiff > 100) {
+            logViolation('محاولة تصغير المتصفح أو تقسيم الشاشة');
+        }
+    }
+
+    function handleContextMenu(e) {
+        e.preventDefault();
+    }
+
+   function handleKeyDown(e) {
+        // إذا كان الامتحان منتهياً أو الطالب قام بمخالفة سابقة، لا تفعل شيئاً
+        if(state.hasViolated || state.examFinished) return;
+        
+        // 1. منع زر F12
+        if (e.key === 'F12') {
+            e.preventDefault();
+            logViolation('محاولة فتح أدوات المطور (F12)');
+            return false;
+        }
+        
+        // 2. التعامل مع اختصارات زر CTRL
+        if (e.ctrlKey) {
+            const key = e.key.toLowerCase();
+            
+            // قائمة الأزرار الممنوعة مع Ctrl
+            // c=copy, v=paste, x=cut, a=select all, p=print, s=save, u=source code
+            if (['c', 'v', 'x', 'a', 'p', 's', 'u'].includes(key)) {
+                e.preventDefault();
+                // يمكنك تفعيل المخالفة هنا لو أردت أن يتم طرده فوراً عند محاولة النسخ
+                // logViolation('محاولة نسخ أو لصق أو طباعة'); 
+                return false;
+            }
+
+            // منع أدوات المطور المتقدمة (Shift + I/J/C)
+            if (e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+                e.preventDefault();
+                logViolation('محاولة فتح أدوات المطور');
+                return false;
+            }
+        }
+    }
+
+    function logViolation(type) {
+        if (!state.examStarted || state.gracePeriodActive || state.hasViolated || state.examFinished) return;
+        
+        console.log("🚨 CHEATING DETECTED:", type);
+        state.hasViolated = true;
+        state.violations.push({ type: type, timestamp: new Date().toISOString() });
+        
+        const w = document.getElementById('violationWarning');
+        document.getElementById('violationMessage').textContent = `⛔ تم اكتشاف: ${type}`;
+        w.classList.add('active');
+        document.body.style.pointerEvents = 'none';
+        
+        setTimeout(() => {
+            finishExam(`محاولة غش: ${type}`, true, true);
+        }, 2000);
+    }
+   
+    function setupAntiCheat() {
+        if(!EXAM_SETTINGS.antiCheat.enabled) return;
+
+        // ✅ Use named functions so we can remove them later
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleWindowBlur);
+        window.addEventListener('resize', handleWindowResize);
+        document.addEventListener('contextmenu', handleContextMenu);
+        document.addEventListener('keydown', handleKeyDown);
+
+        let devtoolsOpen = false;
+        const devtoolsChecker = setInterval(() => {
+            if(state.hasViolated || state.examFinished) {
+                clearInterval(devtoolsChecker);
+                return;
+            }
+            
+            const threshold = 160;
+            if (window.outerWidth - window.innerWidth > threshold || 
+                window.outerHeight - window.innerHeight > threshold) {
+                if (!devtoolsOpen && state.examStarted && !state.gracePeriodActive) {
+                    devtoolsOpen = true;
+                    logViolation('محاولة فتح أدوات المطور');
+                }
+            } else {
+                devtoolsOpen = false;
+            }
+        }, 1000);
+    }
+
+    async function setupCamera() {
+        if(!EXAM_SETTINGS.camera.enabled) return;
+        try {
+            state.cameraStream = await navigator.mediaDevices.getUserMedia({video:{width:160}});
+            document.getElementById('cameraVideo').srcObject = state.cameraStream;
+            document.getElementById('cameraMonitor').classList.add('active');
+            
+            state.cameraInterval = setInterval(() => {
+                if(state.examFinished) return;
+                
+                const cvs = document.createElement('canvas');
+                cvs.width = 160;
+                cvs.height = 120;
+                cvs.getContext('2d').drawImage(document.getElementById('cameraVideo'), 0, 0, 160, 120);
+                
+                const imageData = cvs.toDataURL('image/jpeg', 0.3);
+                
+                state.snapshots.push({
+                    image: imageData,
+                    timestamp: Date.now()
+                });
+                
+                if (state.snapshots.length > 10) {
+                    state.snapshots.shift();
+                }
+                
+            }, EXAM_SETTINGS.camera.captureInterval);
+        } catch(e) { 
+            console.log('Camera error:', e);
+        }
+    }
+
+    function stopCamera() {
+        if(state.cameraStream) state.cameraStream.getTracks().forEach(t=>t.stop());
+        clearInterval(state.cameraInterval);
+    }
+
+    function handleBeforeUnload(e) {
+        if(!state.examFinished) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    }
+
+    window.returnToHome = () => location.reload();
+
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // منع النسخ والقص واللصق
+    document.addEventListener('copy', e => {
+        e.preventDefault();
+        // خيار: إظهار تحذير بسيط
+        // alert("النسخ ممنوع");
+    });
+    document.addEventListener('cut', e => e.preventDefault());
+    document.addEventListener('paste', e => {
+        e.preventDefault();
+        alert("اللصق ممنوع داخل الامتحان!");
+    });
+
+</script>
+</body>
+</html>
