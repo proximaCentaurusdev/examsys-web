@@ -1012,9 +1012,11 @@ const AppCore = (function () {
     if (!session || session.status === 'archived') throw new Error('لا توجد جلسة امتحان نشطة حالياً');
     const cur0 = await read(fb, `accessCodes/${code}`);
     if (cur0 == null) throw new Error('الكود غير صحيح'); if (cur0.used) throw new Error('هذا الكود مستخدم من قبل');
+    if (cur0.disabled) throw new Error('هذا الكود معطّل، تواصل مع المشرف');
+    if (cur0.batchSessionId && cur0.batchSessionId !== sid) throw new Error('هذا الكود غير مخصص لجلسة الامتحان الحالية');
     const attemptId = rid('a_');
     const tx = await fb.runTransaction(P(fb, `accessCodes/${code}`), cur => {   // atomic claim: one student per code at a time
-      if (cur === null) return null; if (cur.used) return undefined;
+      if (cur === null) return null; if (cur.used || cur.disabled) return undefined;
       return { ...cur, used: true, usedBy: name, phone, usedAt: iso(), sessionId: sid, attemptId };
     });
     if (!tx.committed) throw new Error('هذا الكود مستخدم من قبل'); if (!tx.snapshot.exists()) throw new Error('الكود غير صحيح');
@@ -1578,7 +1580,7 @@ ${rows.length ? '' : '<tr><td colspan="6">لا يوجد طلاب مسجلين ف
                   };
                   for (let i = 0; ; i++) {   // the result must not be lost to a network blip: retry, but never overwrite a finished attempt
                       try { await AppCore.finishAttempt(window.firebaseDB, state.attemptId, payload); break; }
-                      catch (e) { if (/من قبل/.test(e.message) || i >= 2) throw e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
+                      catch (e) { if (/من قبل|غير موجودة/.test(e.message) || i >= 2) throw e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
                   }
 
                 if(state.snapshots.length > 0) {
@@ -1587,7 +1589,7 @@ ${rows.length ? '' : '<tr><td colspan="6">لا يوجد طلاب مسجلين ف
                         snapshots: state.snapshots
                     });
                 }
-                } catch (e) { console.error('Save error', e); saveMsg = /من قبل/.test(e.message) ? 'ℹ️ تم حفظ إجاباتك مسبقاً' : '⚠️ حدث خطأ في الحفظ، أبلغ المشرف فوراً'; }
+                } catch (e) { console.error('Save error', e); saveMsg = /غير موجودة/.test(e.message) ? '⚠️ ألغت الإدارة هذه المحاولة أثناء الامتحان، تواصل مع المشرف' : /من قبل/.test(e.message) ? 'ℹ️ تم حفظ إجاباتك مسبقاً' : '⚠️ حدث خطأ في الحفظ، أبلغ المشرف فوراً'; }
                 
                 // Show results screen with animation
                 fadeInScreen('congratsScreen');
